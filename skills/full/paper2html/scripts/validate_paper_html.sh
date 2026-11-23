@@ -15,7 +15,7 @@ Checks:
   - each role has a substantive response and roles keep the source order
   - Other Discussion Roles is the final substantive section before references
   - figure inventory entries match HTML data-figure markers or carry waivers
-  - KaTeX auto-render creates math nodes and no katex-error
+  - source HTML has no hand-written KaTeX markup; rendered math comes from KaTeX auto-render, with no katex-error
   - desktop and mobile screenshots can be rendered by Chrome
 USAGE
 }
@@ -221,6 +221,11 @@ for label, pattern in patterns:
             raise SystemExit(1)
 PY
 
+if grep -q 'class="katex' "$HTML_PATH"; then
+  echo "Source HTML contains hand-written class=\"katex...\" markup." >&2
+  echo "KaTeX markup must be produced by auto-render: write formulas as \\[ ... \\] or \\( ... \\) and let KaTeX generate the classes." >&2
+  exit 1
+fi
 if ! command -v google-chrome >/dev/null 2>&1; then
   echo "google-chrome not found; skipped browser render checks." >&2
   exit 0
@@ -255,8 +260,8 @@ if grep -q 'katex-error' "$dom"; then
   echo "Rendered DOM contains katex-error." >&2
   exit 1
 fi
-if ! grep -q 'class="katex' "$dom"; then
-  echo "Rendered DOM contains no KaTeX nodes; check math initialization or source formulas." >&2
+if ! grep -q 'katex-mathml' "$dom"; then
+  echo "Rendered DOM contains no KaTeX-generated math nodes (katex-mathml missing); hand-written katex classes do not count as rendered math." >&2
   exit 1
 fi
 
