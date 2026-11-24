@@ -78,7 +78,7 @@ anchor 是内部笔记，不进公开 HTML。写作全程以②为组织主线�
 
 ## 第八步：部署到博客（私有仓库 cnfjlhj/cnfjlhj-blog，分支 main）
 
-目标仓库的部署是 GitHub Actions 自动化的：push 到 main 会依次运行 Prettier 格式检查、ESLint、knowledge 单元测试、Astro build 并部署到 Cloudflare Pages。`public/research/` 已豁免 Prettier 强制格式，因此手写 HTML 不需要预先格式化。
+目标仓库的部署是 GitHub Actions 自动化的：push 到 main 会触发「Deploy to Cloudflare Pages」工作流，依次执行依赖安装、Prettier format:check、ESLint、Astro build，最后用 wrangler 把构建产物上传到 Cloudflare Pages 项目 cnfjlhj-blog（push 自动部署；上传动作发生在 GitHub Actions 内，不是 Cloudflare Git 集成）。`public/research/` 参与 format:check，推送前必须先在沙箱完成 Prettier 格式化（步骤 3）。
 
 通过 GitHub 连接器做且仅做以下操作：
 1. 新建目录 `public/research/{{topic}}/{{series}}/{{slug}}/`，只放一个 `index.html`（notes、材料包、PDF、图片源文件一律不上传）。
@@ -91,13 +91,14 @@ anchor 是内部笔记，不进公开 HTML。写作全程以②为组织主线�
 }
 ```
 
-3. 不要修改 `src/`、配置文件或任何与本页面无关的文件。
-4. Commit message：`research: add {{slug}} ({{topic}}/{{series}})`。
-5. Push 到 `main`。
+3. 推送前在沙箱完成 Prettier 格式化：下载 `https://raw.githubusercontent.com/cnfjlhj/cnfjlhj-blog/main/.prettierrc.mjs`；沙箱能安装 npm 包时装 `prettier@^3.7.4`、`prettier-plugin-astro`、`prettier-plugin-tailwindcss` 并运行 `npx prettier --config .prettierrc.mjs --write index.html`；无法装包时用等效精简配置（printWidth 80、tabWidth 2、semi、双引号、trailingComma es5、parser html）代替——本页为纯 HTML 且无 Tailwind class，插件不影响输出。格式化后重跑第七步的 validate，确认 `data-discussion-role`、`data-figure` 与 KaTeX 公式未被破坏。
+4. 不要修改 `src/`、配置文件或任何与本页面无关的文件。
+5. Commit message：`research: add {{slug}} ({{topic}}/{{series}})`。
+6. Push 到 `main`。
 
 ## 第九步：核验与交付
 
-1. 等待 Actions 工作流（Deploy to Cloudflare Pages）完成；失败则读取日志定位并修复（只允许再产生一个修复 commit）。
+1. 等待 Actions 工作流（Deploy to Cloudflare Pages）完成；失败则读取日志定位并修复（只允许再产生一个修复 commit）。最常见失败点：Prettier format:check（未按第八步步骤 3 格式化）与 Astro build（`_meta.json` JSON 语法错误或 research meta 缺失）。
 2. 部署成功后访问 `https://cnfjlhj-blog.pages.dev/research/{{topic}}/{{series}}/{{slug}}/` 确认返回 200 且包含 KaTeX 渲染和七个角色区块。
 3. 向用户交付：页面 URL、commit 链接、Actions 运行链接、figure 盘点结论（收录数 / waiver 数）、grounding anchor 的增量结论、以及沙箱内验证与线上验证各自完成/未完成的清单。
 4. 未经用户明确要求，不联系论文作者，不修改任何其他页面的内容。
